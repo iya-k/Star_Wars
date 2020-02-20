@@ -12,7 +12,6 @@ import GameplayKit
 
 struct PhysicsCategory {
   static let none      : UInt32 = 0
-  static let all       : UInt32 = UInt32.max
   static let vert   : UInt32 = 0b001       // 1
   static let rouge: UInt32 = 0b010      // 2
 }
@@ -26,9 +25,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var labelScore : SKLabelNode?
     private var labelResult : SKLabelNode?
     private var labelTitle : SKLabelNode?
+    private var labelChrono : SKLabelNode?
+    private var labelHorloge : SKLabelNode?
     private var carreVert: SKSpriteNode?
-    private var cpt: Int = 0
-    //private var carreRouge: SKSpriteNode?
+    private var score: Int = 0
+    private var chrono: Int = 0
+    
 
     override func sceneDidLoad() {
         
@@ -36,18 +38,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Get label node from scene and store it for use later
         self.labelScore = self.childNode(withName: "//lbl_score") as? SKLabelNode
-        if let label = self.labelScore {
-            label.alpha = 0.0
-            label.run(SKAction.fadeIn(withDuration: 0.5))
-        }
-        
         self.labelResult = self.childNode(withName: "//lbl_result") as? SKLabelNode
-        if let label = self.labelResult {
-            label.alpha = 2.0
-            label.run(SKAction.fadeIn(withDuration: 0.5))
+        
+        self.labelHorloge = self.childNode(withName: "//lbl_horloge") as? SKLabelNode
+        self.labelChrono = self.childNode(withName: "//lbl_chrono") as? SKLabelNode
+        if let label = labelChrono
+        {
+            chrono = Int(label.text!)!
+            
         }
         
         self.labelTitle = self.childNode(withName: "//lbl_title") as? SKLabelNode
+        print(chrono)
         if let label = self.labelTitle {
             label.alpha = 0.0
             label.run(SKAction.repeatForever(
@@ -72,11 +74,49 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         run(SKAction.repeatForever(
           SKAction.sequence([
             SKAction.run(addCarreRouge),
-            SKAction.wait(forDuration: 1.0)
+            SKAction.wait(forDuration: 1.0),
+            SKAction.run(compteARebours)
             ])
         ))
+        
     }
+    
+    func compteARebours()
+    {
+        chrono = chrono - 1
+        labelChrono?.text = String(chrono)
 
+        let endGame = SKLabelNode(fontNamed: "Zapfino")
+        endGame.fontSize = 100.0
+        let endScore = SKLabelNode(fontNamed: "Zapfino")
+        endScore.fontSize = 50.0
+        if chrono == 0 && score < 1
+        {
+            endGame.text = "You Lose! \n"
+            endScore.text = "Your score is: " + String(score)
+            self.removeAllChildren()
+            self.removeAllActions()
+            
+            endGame.position = CGPoint(x: 20, y: 100)
+            endScore.position = CGPoint(x: 30, y: -10)
+            
+            self.addChild(endGame)
+            self.addChild(endScore)
+        }
+        else if(chrono == 0)
+        {
+            endGame.text = "Well done ;)"
+            endScore.text = "Your score is: " + String(score)
+            self.removeAllChildren()
+            self.removeAllActions()
+            
+            endGame.position = CGPoint(x: 20, y: 100)
+            endScore.position = CGPoint(x: 30, y: -10)
+            
+            self.addChild(endGame)
+            self.addChild(endScore)
+        }
+    }
     func random(min: CGFloat, max: CGFloat) -> CGFloat{
 
         return (CGFloat(Float(arc4random()) / 0xFFFFFFFF)) * (max - min) + min
@@ -97,7 +137,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let actualY = random(min: -rouge.size.height*8, max: size.height - rouge.size.height/2)
             rouge.position = CGPoint(x: size.width - rouge.size.width/2, y: actualY)
         
-            rouge.physicsBody = SKPhysicsBody(rectangleOf: rouge.size)
+            //rouge.physicsBody = SKPhysicsBody(rectangleOf: rouge.size)
+            
             rouge.physicsBody?.isDynamic = true //pour detecter la collision
             rouge.physicsBody?.affectedByGravity = false
             
@@ -124,6 +165,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
       // 1
       var firstBody: SKPhysicsBody
       var secondBody: SKPhysicsBody
+        
+        /*
+         
+         if contact.bodyA.categoryBitMask < contact.bodyB.categoryBitMask {
+         firstBody = contact.bodyA
+         secondBody = contact.bodyB
+         
+         
+         */
+    
+        
       if contact.bodyA.categoryBitMask < contact.bodyB.categoryBitMask {
         firstBody = contact.bodyA
         secondBody = contact.bodyB
@@ -132,22 +184,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         secondBody = contact.bodyA
       }
       // 2
-      if ((firstBody.categoryBitMask & 0b001 != 0) &&
-          (secondBody.categoryBitMask & 0b010 != 0)) {
-        if let vert = firstBody.node as? SKSpriteNode,
-          let rouge = secondBody.node as? SKSpriteNode {
-          projectileDidCollide(vert: vert, rouge: rouge)
+      if ((firstBody.categoryBitMask & PhysicsCategory.vert != 0) &&
+          (secondBody.categoryBitMask & PhysicsCategory.rouge != 0)) {
+        if let rouge = secondBody.node as? SKSpriteNode {
+          projectileDidCollide(rouge: rouge)
         }
       }
     }
     
-    func projectileDidCollide(vert: SKSpriteNode, rouge: SKSpriteNode) {
-      rouge.removeFromParent()
+    func projectileDidCollide(rouge: SKSpriteNode) {
+       rouge.removeFromParent()
         
         if let label = self.labelResult
         {
-            cpt = cpt + 1
-            label.text = String(cpt)
+            score = score + 1
+            label.text = String(score)
         }
     }
  /*
